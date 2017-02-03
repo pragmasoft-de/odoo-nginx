@@ -3,29 +3,29 @@
 ## Based on: http://www.schenkels.nl/2013/01/reverse-ssl-proxy-using-nginx-with-openerp-v7/
 
 ## OpenERP backend ##
-upstream odoo9 {
+upstream odoo {
     server 127.0.0.1:8069 weight=1 fail_timeout=0;
 }
 
-upstream odoo9-im {
+upstream odoo-im {
     server 127.0.0.1:8072 weight=1 fail_timeout=0;
 }
 
 ## https site##
 server {
     listen      443;
-    server_name odoo9.domain.tld;
+    server_name odoo.domain.tld;
     root        /usr/share/nginx/html;
     index       index.html index.htm;
 
     # log files
-    access_log  /var/log/nginx/odoo9.domain.tld.access.log;
-    error_log   /var/log/nginx/odoo9.domain.tld.error.log;
+    access_log  /var/log/nginx/odoo.domain.tld.access.log;
+    error_log   /var/log/nginx/odoo.domain.tld.error.log;
 
     # ssl files
     ssl on;
-    ssl_certificate     /etc/letsencrypt/live/odoo9.domain.tld/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/odoo9.domain.tld/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/odoo.domain.tld/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/odoo.domain.tld/privkey.pem;
     keepalive_timeout   60;
 
     # limit ciphers
@@ -46,7 +46,7 @@ server {
 
     ## default location ##
     location / {
-        proxy_pass  http://odoo9;
+        proxy_pass  http://odoo;
         # force timeouts if the backend dies
         proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
         proxy_redirect off;
@@ -64,18 +64,18 @@ server {
         proxy_cache_valid 200 60m;
         proxy_buffering on;
         expires 864000;
-        proxy_pass http://odoo9;
+        proxy_pass http://odoo;
     }
 
     location /longpolling {
-        proxy_pass http://odoo9-im;
+        proxy_pass http://odoo-im;
     }
 }
 
 ## http redirects to https ##
 server {
     listen      80;
-    server_name odoo9.domain.tld;
+    server_name odoo.domain.tld;
 
     # Strict Transport Security
     add_header Strict-Transport-Security max-age=2592000;
