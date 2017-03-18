@@ -1,0 +1,56 @@
+## https://www.odoo.com/fr_FR/forum/help-1/question/nginx-reverse-proxy-on-80-443-32052
+
+## Based on: http://www.schenkels.nl/2013/01/reverse-ssl-proxy-using-nginx-with-openerp-v7/
+
+## OpenERP backend ##
+upstream odoo {
+    server 127.0.0.1:8069 weight=1 fail_timeout=0;
+}
+
+upstream odoo-im {
+    server 127.0.0.1:8072 weight=1 fail_timeout=0;
+}
+
+## https site##
+server {
+    listen      80;
+    server_name odoo.domain.tld;
+    root        /usr/share/nginx/html;
+    index       index.html index.htm;
+
+    # log files
+    access_log  /var/log/nginx/odoo.domain.tld.access.log;
+    error_log   /var/log/nginx/odoo.domain.tld.error.log;
+
+    # proxy buffers
+    proxy_buffers 16 64k;
+    proxy_buffer_size 128k;
+
+    ## default location ##
+    location / {
+        proxy_pass  http://odoo;
+        # force timeouts if the backend dies
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+        proxy_redirect off;
+	proxy_read_timeout 300000;
+	
+        # set headers
+        proxy_set_header    Host            $host;
+        proxy_set_header    X-Real-IP       $remote_addr;
+        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header    X-Forwarded-Proto https;
+    }
+
+    # cache some static data in memory for 60mins
+    location ~* /web/static/ {
+        proxy_cache_valid 200 60m;
+        proxy_buffering on;
+        expires 864000;
+        proxy_pass http://odoo;
+    }
+
+    location /longpolling {
+        proxy_pass http://odoo-im;
+    }
+}
+
